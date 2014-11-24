@@ -56,9 +56,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <pixelflinger/format.h>
 
-#include <linux/videodev2.h>
+#if HAVE_ANDROID_OS
+#include <pixelflinger/format.h>
+#endif
+
+// #include "videodev2.h"
 #include "s5p_fimc.h"
 
 #ifdef SAMSUNG_EXYNOS4x12
