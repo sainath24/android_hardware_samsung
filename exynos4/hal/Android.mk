@@ -15,9 +15,11 @@
 #
 
 ifeq ($(TARGET_BOARD_PLATFORM),exynos4)
-
+ifeq ($(TARGET_SOC),exynos4210)
+common_exynos4_dirs := libhdmi libhwcomposer libhwconverter libsecion
+else
 common_exynos4_dirs := libgralloc_ump libhdmi libhwcomposer libhwconverter libsecion
-
+endif
 ifneq ($(BOARD_USES_PROPRIETARY_LIBCAMERA),true)
 common_exynos4_dirs += libcamera
 endif
