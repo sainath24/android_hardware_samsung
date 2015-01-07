@@ -657,7 +657,17 @@ dispatchDial (Parcel &p, RequestInfo *pRI) {
         }
 
         if (uusPresent == 0) {
+#ifdef MODEM_6262
             dial.uusInfo = NULL;
+#elif MODEM_6260
+            /* Samsung hack */
+            memset(&uusInfo, 0, sizeof(RIL_UUS_Info));
+            uusInfo.uusType = (RIL_UUS_Type) 0;
+            uusInfo.uusDcs = (RIL_UUS_DCS) 0;
+            uusInfo.uusData = NULL;
+            uusInfo.uusLength = 0;
+            dial.uusInfo = &uusInfo;
+#endif
         } else {
             int32_t len;
 
@@ -2298,6 +2308,7 @@ static int responseCdmaInformationRecords(Parcel &p,
     return 0;
 }
 
+#ifdef MODEM_6262
 static int responseRilSignalStrength(Parcel &p,
                     void *response, size_t responselen) {
 
@@ -2426,6 +2437,111 @@ static int responseRilSignalStrength(Parcel &p,
 
     return 0;
 }
+#elif MODEM_6260
+static int responseRilSignalStrength(Parcel &p,
+                    void *response, size_t responselen) {
+
+    int gsmSignalStrength;
+
+    if (response == NULL && responselen != 0) {
+        RLOGE("invalid response: NULL");
+        return RIL_ERRNO_INVALID_RESPONSE;
+    }
+
+    RLOGE("responseRilSignalStrength()");
+
+    if (responselen >= sizeof (RIL_SignalStrength_v5)) {
+        RIL_SignalStrength_v6 *p_cur = ((RIL_SignalStrength_v6 *) response);
+
+        /* gsmSignalStrength */
+        RLOGD("gsmSignalStrength (raw)=%d", p_cur->GW_SignalStrength.signalStrength);
+        gsmSignalStrength = p_cur->GW_SignalStrength.signalStrength & 0xFF;
+        RLOGD("gsmSignalStrength (corrected)=%d", gsmSignalStrength);
+
+        /* 
+         * if gsmSignalStrength isn't a valid value, use cdmaDbm as fallback.
+         * This is needed for old modem firmwares.
+         */
+        if (gsmSignalStrength < 0 || (gsmSignalStrength > 31 && p_cur->GW_SignalStrength.signalStrength != 99)) {
+            RLOGD("gsmSignalStrength-fallback (raw)=%d", p_cur->CDMA_SignalStrength.dbm);
+            gsmSignalStrength = p_cur->CDMA_SignalStrength.dbm;
+            if (gsmSignalStrength < 0) {
+                gsmSignalStrength = 99;
+            } else if (gsmSignalStrength > 31 && gsmSignalStrength != 99) {
+                gsmSignalStrength = 31;
+            }
+            RLOGD("gsmSignalStrength-fallback (corrected)=%d", gsmSignalStrength);
+        }
+        p.writeInt32(gsmSignalStrength);
+
+        /* gsmBitErrorRate */
+        p.writeInt32(p_cur->GW_SignalStrength.bitErrorRate);
+        /* cdmaDbm */
+        p.writeInt32(p_cur->CDMA_SignalStrength.dbm);
+        /* cdmaEcio */
+        p.writeInt32(p_cur->CDMA_SignalStrength.ecio);
+        /* evdoDbm */
+        p.writeInt32(p_cur->EVDO_SignalStrength.dbm);
+        /* evdoEcio */
+        p.writeInt32(p_cur->EVDO_SignalStrength.ecio);
+        /* evdoSnr */
+        p.writeInt32(p_cur->EVDO_SignalStrength.signalNoiseRatio);
+
+        if (responselen >= sizeof (RIL_SignalStrength_v6)) {
+            /* lteSignalStrength */
+            p.writeInt32(p_cur->LTE_SignalStrength.signalStrength);
+
+            /*
+             * ril version <=6 receives negative values for rsrp
+             * workaround for backward compatibility
+             */
+            p_cur->LTE_SignalStrength.rsrp =
+                    ((s_callbacks.version <= 6) && (p_cur->LTE_SignalStrength.rsrp < 0 )) ?
+                        -(p_cur->LTE_SignalStrength.rsrp) : p_cur->LTE_SignalStrength.rsrp;
+
+            /* lteRsrp */
+            p.writeInt32(p_cur->LTE_SignalStrength.rsrp);
+            /* lteRsrq */
+            p.writeInt32(p_cur->LTE_SignalStrength.rsrq);
+            /* lteRssnr */
+            p.writeInt32(p_cur->LTE_SignalStrength.rssnr);
+            /* lteCqi */
+            p.writeInt32(p_cur->LTE_SignalStrength.cqi);
+
+        } else {
+            memset(&p_cur->LTE_SignalStrength, sizeof (RIL_LTE_SignalStrength), 0);
+        }
+
+        startResponse;
+        appendPrintBuf("%s[signalStrength=%d,bitErrorRate=%d,\
+                CDMA_SS.dbm=%d,CDMA_SSecio=%d,\
+                EVDO_SS.dbm=%d,EVDO_SS.ecio=%d,\
+                EVDO_SS.signalNoiseRatio=%d,\
+                LTE_SS.signalStrength=%d,LTE_SS.rsrp=%d,LTE_SS.rsrq=%d,\
+                LTE_SS.rssnr=%d,LTE_SS.cqi=%d]",
+                printBuf,
+                gsmSignalStrength,
+                p_cur->GW_SignalStrength.bitErrorRate,
+                p_cur->CDMA_SignalStrength.dbm,
+                p_cur->CDMA_SignalStrength.ecio,
+                p_cur->EVDO_SignalStrength.dbm,
+                p_cur->EVDO_SignalStrength.ecio,
+                p_cur->EVDO_SignalStrength.signalNoiseRatio,
+                p_cur->LTE_SignalStrength.signalStrength,
+                p_cur->LTE_SignalStrength.rsrp,
+                p_cur->LTE_SignalStrength.rsrq,
+                p_cur->LTE_SignalStrength.rssnr,
+                p_cur->LTE_SignalStrength.cqi);
+        closeResponse;
+
+    } else {
+        RLOGE("invalid response length");
+        return RIL_ERRNO_INVALID_RESPONSE;
+    }
+
+    return 0;
+}
+#endif
 
 static int responseCallRing(Parcel &p, void *response, size_t responselen) {
     if ((response == NULL) || (responselen == 0)) {
