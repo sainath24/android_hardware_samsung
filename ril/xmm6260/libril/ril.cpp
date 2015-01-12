@@ -1971,7 +1971,7 @@ static int responseDataCallList(Parcel &p, void *response, size_t responselen)
                 (char*)p_cur[i].ifname,
                 (char*)p_cur[i].addresses,
                 (char*)p_cur[i].dnses,
-                (char*)p_cur[i].p_cur[i].addresses);
+                (char*)p_cur[i].addresses);
         }
         removeLastChar;
         closeResponse;
