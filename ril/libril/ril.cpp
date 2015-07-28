@@ -284,7 +284,6 @@ static void dispatchRadioCapability(Parcel &p, RequestInfo *pRI);
 static int responseInts(Parcel &p, void *response, size_t responselen);
 static int responseIntsGetPreferredNetworkType(Parcel &p, void *response, size_t responselen);
 static int responseStrings(Parcel &p, void *response, size_t responselen);
-static int responseStringsNetworks(Parcel &p, void *response, size_t responselen);
 static int responseStrings(Parcel &p, void *response, size_t responselen, bool network_search);
 static int responseString(Parcel &p, void *response, size_t responselen);
 static int responseVoid(Parcel &p, void *response, size_t responselen);
@@ -2083,8 +2082,8 @@ static void dispatchRadioCapability(Parcel &p, RequestInfo *pRI){
 
     startRequest;
     appendPrintBuf("%s [version:%d, session:%d, phase:%d, rat:%d, \
-            logicalModemUuid:%s, status:%d", printBuf, rc.version, rc.session,
-            rc.phase, rc.rat, rc.logicalModemUuid, rc.status);
+            logicalModemUuid:%s, status:%d", printBuf, rc.version, rc.session
+            rc.phase, rc.rat, rc.logicalModemUuid, rc.session);
 
     closeRequest;
     printRequest(pRI->token, pRI->pCI->requestNumber);
@@ -2992,6 +2991,13 @@ static int responseRilSignalStrength(Parcel &p,
 
 #if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260)
         gsmSignalStrength = p_cur->GW_SignalStrength.signalStrength & 0xFF;
+
+#ifdef MODEM_TYPE_XMM6260
+        if (gsmSignalStrength < 0 ||
+                (gsmSignalStrength > 31 && p_cur->GW_SignalStrength.signalStrength != 99)) {
+            gsmSignalStrength = p_cur->CDMA_SignalStrength.dbm;
+        }
+#else
         if (gsmSignalStrength < 0) {
             gsmSignalStrength = 99;
         } else if (gsmSignalStrength > 31 && gsmSignalStrength != 99) {
@@ -3460,7 +3466,7 @@ static int responseRadioCapability(Parcel &p, void *response, size_t responselen
 
     startResponse;
     appendPrintBuf("%s[version=%d,session=%d,phase=%d,\
-            rat=%d,logicalModemUuid=%s,status=%d]",
+            rat=%s,logicalModemUuid=%s,status=%d]",
             printBuf,
             p_cur->version,
             p_cur->session,
@@ -3752,6 +3758,7 @@ static int responseDcRtInfo(Parcel &p, void *response, size_t responselen)
     appendPrintBuf("%s[time=%d,powerState=%d]", printBuf,
         pDcRtInfo->time,
         (int)pDcRtInfo->powerState);
+        /*pDcRtInfo->powerState);*/
     closeResponse;
 
     return 0;
