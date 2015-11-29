@@ -789,7 +789,7 @@ dispatchDial (Parcel &p, RequestInfo *pRI) {
     int32_t sizeOfDial;
     int32_t t;
     int32_t uusPresent;
-#ifdef MODEM_TYPE_XMM7260
+#if defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
     char *csv;
 #endif
     status_t status;
@@ -806,7 +806,7 @@ dispatchDial (Parcel &p, RequestInfo *pRI) {
         goto invalid;
     }
 
-#ifdef MODEM_TYPE_XMM7260
+#if defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
     /* CallDetails.call_type */
     status = p.readInt32(&t);
     if (status != NO_ERROR) {
@@ -836,7 +836,7 @@ dispatchDial (Parcel &p, RequestInfo *pRI) {
         }
 
         if (uusPresent == 0) {
-#if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260)
+#if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
             dial.uusInfo = NULL;
 #elif defined(MODEM_TYPE_XMM6260)
             /* Samsung hack */
@@ -2323,7 +2323,7 @@ static int responseStrings(Parcel &p, void *response, size_t responselen, bool n
         /* each string*/
         startResponse;
         for (int i = 0 ; i < numStrings ; i++) {
-            if (network_search && (i % 5 == 0))
+            if (network_search && ((i + 1) % 5 == 0))
                 continue;
             appendPrintBuf("%s%s,", printBuf, (char*)p_cur[i]);
             writeStringToParcel (p, p_cur[i]);
@@ -2386,7 +2386,7 @@ static int responseCallList(Parcel &p, void *response, size_t responselen) {
         p.writeInt32(p_cur->als);
         p.writeInt32(p_cur->isVoice);
 
-#ifdef MODEM_TYPE_XMM7260
+#if defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
         p.writeInt32(p_cur->isVideo);
 
         /* Pass CallDetails */
@@ -2423,7 +2423,7 @@ static int responseCallList(Parcel &p, void *response, size_t responselen) {
             p_cur->als,
             (p_cur->isVoice)?"voc":"nonvoc",
             (p_cur->isVoicePrivacy)?"evp":"noevp");
-#ifdef MODEM_TYPE_XMM7260
+#if defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
         appendPrintBuf("%s,%s,",
             printBuf,
             (p_cur->isVideo) ? "vid" : "novid");
@@ -3008,8 +3008,14 @@ static int responseRilSignalStrength(Parcel &p,
     if (responselen >= sizeof (RIL_SignalStrength_v5)) {
         RIL_SignalStrength_v10 *p_cur = ((RIL_SignalStrength_v10 *) response);
 
-#if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260)
         gsmSignalStrength = p_cur->GW_SignalStrength.signalStrength & 0xFF;
+
+#ifdef MODEM_TYPE_XMM6260
+        if (gsmSignalStrength < 0 ||
+                (gsmSignalStrength > 31 && p_cur->GW_SignalStrength.signalStrength != 99)) {
+            gsmSignalStrength = p_cur->CDMA_SignalStrength.dbm;
+        }
+#else
         if (gsmSignalStrength < 0) {
             gsmSignalStrength = 99;
         } else if (gsmSignalStrength > 31 && gsmSignalStrength != 99) {
@@ -3037,7 +3043,7 @@ static int responseRilSignalStrength(Parcel &p,
 
         p.writeInt32(p_cur->GW_SignalStrength.bitErrorRate);
 
-#if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260)
+#if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
         cdmaDbm = p_cur->CDMA_SignalStrength.dbm & 0xFF;
         if (cdmaDbm < 0) {
             cdmaDbm = 99;
@@ -3050,7 +3056,7 @@ static int responseRilSignalStrength(Parcel &p,
         p.writeInt32(cdmaDbm);
         p.writeInt32(p_cur->CDMA_SignalStrength.ecio);
 
-#if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260)
+#if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
         evdoDbm = p_cur->EVDO_SignalStrength.dbm & 0xFF;
         if (evdoDbm < 0) {
             evdoDbm = 99;

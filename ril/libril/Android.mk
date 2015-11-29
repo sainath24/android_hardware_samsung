@@ -31,6 +31,12 @@ endif
 ifeq ($(BOARD_MODEM_TYPE),xmm7260)
 LOCAL_CFLAGS := -DMODEM_TYPE_XMM7260
 endif
+ifeq ($(BOARD_MODEM_TYPE),m7450)
+LOCAL_CFLAGS := -DMODEM_TYPE_M7450
+endif
+
+LOCAL_C_INCLUDES += $(TARGET_OUT_HEADER)/librilutils
+LOCAL_C_INCLUDES += external/nanopb-c
 
 LOCAL_C_INCLUDES += $(TARGET_OUT_HEADER)/librilutils
 LOCAL_C_INCLUDES += external/nanopb-c
