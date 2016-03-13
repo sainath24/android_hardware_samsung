@@ -789,7 +789,7 @@ dispatchDial (Parcel &p, RequestInfo *pRI) {
     int32_t sizeOfDial;
     int32_t t;
     int32_t uusPresent;
-#ifdef SAMSUNG_NEXT_GEN_MODEM
+#if defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
     char *csv;
 #endif
     status_t status;
@@ -806,7 +806,7 @@ dispatchDial (Parcel &p, RequestInfo *pRI) {
         goto invalid;
     }
 
-#ifdef SAMSUNG_NEXT_GEN_MODEM
+#if defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
     /* CallDetails.call_type */
     status = p.readInt32(&t);
     if (status != NO_ERROR) {
@@ -836,7 +836,7 @@ dispatchDial (Parcel &p, RequestInfo *pRI) {
         }
 
         if (uusPresent == 0) {
-#if defined(MODEM_TYPE_XMM6262) || defined(SAMSUNG_NEXT_GEN_MODEM)
+#if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
             dial.uusInfo = NULL;
 #elif defined(MODEM_TYPE_XMM6260)
             /* Samsung hack */
@@ -2386,11 +2386,9 @@ static int responseCallList(Parcel &p, void *response, size_t responselen) {
         p.writeInt32(p_cur->als);
         p.writeInt32(p_cur->isVoice);
 
-#ifdef NEEDS_VIDEO_CALL_FIELD
+#if defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
         p.writeInt32(p_cur->isVideo);
-#endif
 
-#ifdef SAMSUNG_NEXT_GEN_MODEM
         /* Pass CallDetails */
         p.writeInt32(0);
         p.writeInt32(0);
@@ -2425,7 +2423,7 @@ static int responseCallList(Parcel &p, void *response, size_t responselen) {
             p_cur->als,
             (p_cur->isVoice)?"voc":"nonvoc",
             (p_cur->isVoicePrivacy)?"evp":"noevp");
-#ifdef SAMSUNG_NEXT_GEN_MODEM
+#if defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
         appendPrintBuf("%s,%s,",
             printBuf,
             (p_cur->isVideo) ? "vid" : "novid");
@@ -3028,7 +3026,7 @@ static int responseRilSignalStrength(Parcel &p,
 
         p.writeInt32(p_cur->GW_SignalStrength.bitErrorRate);
 
-#if defined(MODEM_TYPE_XMM6262) || defined(SAMSUNG_NEXT_GEN_MODEM)
+#if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
         cdmaDbm = p_cur->CDMA_SignalStrength.dbm & 0xFF;
         if (cdmaDbm < 0) {
             cdmaDbm = 99;
@@ -3041,7 +3039,7 @@ static int responseRilSignalStrength(Parcel &p,
         p.writeInt32(cdmaDbm);
         p.writeInt32(p_cur->CDMA_SignalStrength.ecio);
 
-#if defined(MODEM_TYPE_XMM6262) || defined(SAMSUNG_NEXT_GEN_MODEM)
+#if defined(MODEM_TYPE_XMM6262) || defined(MODEM_TYPE_XMM7260) || defined(MODEM_TYPE_M7450)
         evdoDbm = p_cur->EVDO_SignalStrength.dbm & 0xFF;
         if (evdoDbm < 0) {
             evdoDbm = 99;
